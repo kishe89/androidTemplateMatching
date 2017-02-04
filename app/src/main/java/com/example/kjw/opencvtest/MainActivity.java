@@ -23,6 +23,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.photo.AlignExposures;
@@ -38,6 +39,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
     private Mat img_input;
     private Mat img_result;
+    private boolean start = true;
     private static final String TAG = "opencv";
     private CameraBridgeViewBase mOpenCvCameraView;
     private String path;
@@ -53,6 +55,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         System.loadLibrary("opencv_java3");
         System.loadLibrary("native-lib");
     }
+
 
     private boolean hasPermissions(String[] permissions) {
         int ret = 0;
@@ -161,7 +164,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         mOpenCvCameraView = (CameraBridgeViewBase)findViewById(R.id.activity_surface_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
-        mOpenCvCameraView.setCameraIndex(1); // front-camera(1),  back-camera(0)
+        mOpenCvCameraView.setCameraIndex(0); // front-camera(1),  back-camera(0)
         mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
     }
 
@@ -227,23 +230,21 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-//        convertNativeLib(img_input.getNativeObjAddr(), img_result.getNativeObjAddr());
         return img_input;
     }
     public void run(Mat inFile, Mat templateFile, String outFile, int match_method) {
-        Log.e(TAG,"\nRunning Template Matching");
+//        Log.e(TAG,"\nRunning Template Matching");
 
         Mat img = inFile;
         Mat templ = templateFile;
 
         // / Create the result matrix
         int result_cols = img.cols() - templ.cols() + 1;
-        Log.e(TAG,"result_cols : "+result_cols+"\nimg_cols : "+img.cols()+"\ntempl_cols : "+templ.cols());
+//        Log.e(TAG,"result_cols : "+result_cols+"\nimg_cols : "+img.cols()+"\ntempl_cols : "+templ.cols());
         int result_rows = img.rows() - templ.rows() + 1;
-        Log.e(TAG,"result_rows : "+result_cols+"\nimg_rows : "+img.rows()+"\ntempl_rows : "+templ.rows());
+//        Log.e(TAG,"result_rows : "+result_cols+"\nimg_rows : "+img.rows()+"\ntempl_rows : "+templ.rows());
         Mat result = new Mat(result_rows, result_cols, CvType.CV_32FC1);
-        Log.e(TAG,"final output mat rows : "+result.rows()+"\nfinal output mat cols : "+result.cols());
+//        Log.e(TAG,"final output Mat result rows : "+result.rows()+"\nfinal output Mat result cols : "+result.cols());
         // / Do the Matching and Normalize
 
         Imgproc.matchTemplate(img, templ, result, match_method);
@@ -264,9 +265,21 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
                 matchLoc.y + templ.rows()), new Scalar(0, 255, 0));
 
         // Save the visualized detection.
-        Log.e(TAG,"Writing "+ outFile);
-        if(!output.exists())
-        Imgcodecs.imwrite(outFile, img);
-
+//        Log.e(TAG,"Writing "+ outFile);
+        Mat dst = new Mat();
+        if(!output.exists()){
+            try {
+                if (start){
+                    start = false;
+                    PGMInFo info = new PGMInFo(PGMInFo.PGM_FORMAT_PLANE,PGMInFo.ONE_BYTE_PGM);
+                    PGMBulider bulider = new PGMBulider(70,70,info);
+                    Imgproc.resize(img,dst,new Size(70,70));
+                    bulider.setPgm(dst);
+                    Imgcodecs.imwrite(outFile, dst);
+                }
+            } catch (PGMException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
